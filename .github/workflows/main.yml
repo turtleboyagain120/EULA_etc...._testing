@@ -1,0 +1,67 @@
+name: Scan Placeholders
+on: [push, schedule, workflow_dispatch]
+
+jobs:
+  analyze-markdown:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target-dir: ['docs', 'wiki', 'projects'] # Example split to prevent overlap
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Scan for Bracket Placeholders
+        id: scanner
+        shell: bash
+        run: |
+          # Enable 'fail-fast' at the shell level
+          set -euo pipefail
+
+          TARGET="${{ matrix.target-dir }}"
+          echo "::group::Scanning $TARGET"
+          
+          # Initialize temporary buffer
+          MATCH_FOUND=false
+          RESULTS_BUFFER=$(mktemp)
+
+          # 1. Find Markdown files (handle spaces/special chars with -print0)
+          # 2. Use PCRE grep (-P) for surgical regex precision
+          # Pattern: Matches [text] but ignores [text](link) or ![alt](img)
+          # Logic: Search for [something] NOT followed by (
+          REG_PATTERN='(?<!\!|\])\[[^\]]+\](?!\()'
+
+          while IFS= find "$TARGET" -type f -name "*.md" -print0 | xargs -0 grep -Pn "$REG_PATTERN" >> "$RESULTS_BUFFER" || true; do
+            if [ -s "$RESULTS_BUFFER" ]; then
+              MATCH_FOUND=true
+            fi
+            break
+          done
+
+          # Output handling using modern heredoc
+          {
+            echo "scan_results<<EOF"
+            if [ "$MATCH_FOUND" = true ]; then
+              cat "$RESULTS_BUFFER"
+            else
+              echo "No placeholders found in $TARGET."
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          # Logging for the console
+          if [ "$MATCH_FOUND" = true ]; then
+            echo "✅ Found placeholders in $TARGET. See step outputs."
+          else
+            echo "✨ $TARGET is clean."
+          fi
+          
+          echo "::endgroup::"
+          rm "$RESULTS_BUFFER"
+
+      - name: Report Results
+        run: |
+          echo "Summary for ${{ matrix.target-dir }}:"
+          echo "${{ steps.scanner.outputs.scan_results }}"
