@@ -68,6 +68,8 @@ Remember that by using this template, you are allowing others to remake and shar
 
 - \[real name\] \<[timmytheonlinegirl@hotmail.com](mailto:timmytheonlinegirl@hotmail.com)\>
 
+For the eula, go to https://github.com/turtleboyagain120/IET/blob/main/Eit_2.0.md
+
 - Version: 1.0.0  
 - \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
 - Status: Stable / Release
